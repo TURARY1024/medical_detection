@@ -1,3 +1,4 @@
+
 # import easyocr
 import base64
 
@@ -5,6 +6,8 @@ from rembg import remove
 import argparse
 import cv2
 import numpy as np
+
+
 # 初始化 OpenOCR 引擎
 from openocr import OpenOCR
 import logging
@@ -62,6 +65,26 @@ from rembg import remove
 # MODEL_ID = "ai-drug-analysis-service/3"
 ###
 # create an inference client
+# 套用字體（用 FontProperties）
+
+from matplotlib.font_manager import FontProperties
+
+
+zh_font = FontProperties(fname="/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc")
+
+
+from pillow_heif import register_heif_opener
+
+register_heif_opener()
+
+from inference_sdk import InferenceHTTPClient
+
+import cv2
+
+from rembg import remove
+from ultralytics import YOLO
+det_model = YOLO("/path/to/best.pt")
+
 CLIENT = InferenceHTTPClient(
     api_url="https://detect.roboflow.com",
     api_key="SOlzinVqG2xuWsPUUGRp"
@@ -500,8 +523,15 @@ def test_batch_all_images(ROOT_FOLDER: Path, excel_path: str, start_index=1, end
         print(f"- {drug}: {stats['success']} / {stats['total']} 成功")
 
 
+from ultralytics import YOLO
+
+# ✅ 全域載入本地 YOLO 模型（請提前初始化一次）
+det_model = YOLO("/path/to/best.pt")  # 替換成你的 Roboflow 匯出 .pt 路徑
+
+
 def process_image(img_path: str):
     """
+<<<<<<< HEAD
     單張藥品圖片辨識流程（給 Flask 呼叫）
     - img_path: 圖片路徑（base64 decode 後的暫存圖）
     - return: dict，包含文字、顏色、形狀
@@ -509,6 +539,10 @@ def process_image(img_path: str):
     from PIL import Image
 
     # 讀取圖片（自動判斷是否為 HEIC）
+    from PIL import Image
+    import base64
+
+    # === 讀取圖片 ===
     input_img = read_image_safely(img_path)
     if input_img is None:
         return {"error": "無法讀取圖片"}
@@ -527,6 +561,26 @@ def process_image(img_path: str):
         if cropped_removed is None:
             return {"error": "藥品擷取失敗"}
 
+    # === 使用本地 YOLO 模型進行推論 ===
+    results = det_model(input_img)
+
+    # === 處理 YOLO 偵測結果 ===
+    preds = results[0].boxes
+    if preds and len(preds) > 0:
+        # 取最大框（信心分數最高的）
+        boxes = preds.xyxy.cpu().numpy()  # [x1, y1, x2, y2]
+        best_idx = preds.conf.argmax().item()
+        box = boxes[best_idx]
+        x1, y1, x2, y2 = map(int, box)
+        cropped_original = input_img[y1:y2, x1:x2]
+        cropped_removed = remove(cropped_original)  # 仍使用 rembg 去背
+    else:
+        # YOLO 偵測不到 ➜ fallback
+        cropped_original, cropped_removed = fallback_rembg_bounding(input_img)
+        if cropped_removed is None:
+            return {"error": "藥品擷取失敗"}
+
+    # === 裁切圖轉 Base64 給前端展示 ===
     _, buffer = cv2.imencode(".jpg", cropped_original)
     cropped_base64 = base64.b64encode(buffer).decode("utf-8")
     cropped_base64 = f"data:image/jpeg;base64,{cropped_base64}"
@@ -541,6 +595,14 @@ def process_image(img_path: str):
     image_versions = generate_image_versions(cropped_removed)
     # best_texts, best_name, best_score = get_best_ocr_texts(image_versions)
     best_texts, best_name, best_score = get_best_ocr_texts(image_versions, ocr_engine=ocr_engine)
+    # === 外型、顏色分析 ===
+    shape, _ = detect_shape_from_image(cropped_removed, cropped_original, expected_shape=None, debug=False)
+    colors = extract_dominant_colors_by_ratio(cropped_removed, visualize=False)
+
+    # === 多版本 OCR 辨識 ===
+    image_versions = generate_image_versions(cropped_removed)
+    best_texts, best_name, best_score = get_best_ocr_texts(image_versions, ocr_engine=ocr_engine)
+
     print("文字辨識：" + str(best_texts if best_texts else ["None"]))
     print("最佳版本：" + str(best_name))
     print("信心分數：" + str(round(best_score, 3)))
