@@ -11,7 +11,9 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    min-height: 100vh;
+    height: auto;
+    overflow-y: auto;
     background: #cebba0;
     padding: 10px;
 }
@@ -28,6 +30,8 @@ body {
     flex-direction: column; /* 讓內容垂直排列 */
     align-items: center; /* 讓內容居中對齊 */
     height: auto; /* 自動調整高度 */
+    margin-top: 20px;
+    margin-bottom: 20px;
 }
 
 #select{
@@ -42,7 +46,7 @@ body {
   padding: 3px 15px 3px 5px;
   margin-left: 12%;
   display: block;
-  z-index: 5000;
+  /*z-index: 5000;*/
 }
 
 #select.hover{
@@ -139,6 +143,16 @@ video {
   box-shadow: 0 20px 100px 1px hsla(0, 0%, 100%, 0.2);
   transform: translateY(-4px);
   will-change: box-shadow, transform;
+}
+select {
+    position: relative;
+    /*z-index: 10;*/
+    z-index: auto;
+    overflow: visible !important;
+}
+.selection-container {
+    position: relative;
+    overflow: visible;
 }
 
 .window-size {

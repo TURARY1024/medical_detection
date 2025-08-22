@@ -1,0 +1,29 @@
+# 模型推論
+openocr-python
+onnxruntime
+
+# 檔案處理與圖像
+#opencv-python==4.6.0.66
+#opencv-python>=4.8.1.78
+#numpy==1.24.4            # ✅ 支援 Python 3.11
+
+numpy==1.24.4
+opencv-python==4.6.0.66
+opencv-contrib-python==4.6.0.66  # 若你有用到 SIFT/SURF 等擴充模組就加這行
+
+
+pillow
+pillow-heif              # ✅ 可讀 HEIC
+# pyheif                # ❌ 仍建議移除（Windows 難安裝）
+openpyxl
+# 圖像處理
+rembg
+matplotlib
+scikit-learn
+pandas
+
+# Roboflow SDK
+inference-sdk
+
+# YOLOv8 套件
+ultralytics
